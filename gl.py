@@ -1,3 +1,5 @@
+import render
+
 def glInit():
   print()
 
@@ -8,7 +10,7 @@ def glViewPort(x, y, width, height):
   print()
 
 def glClear():
-  print('clear')
+  print()
 
 def glClearColor(r, g, b):
   print()
@@ -21,3 +23,6 @@ def glColor(r, g, b):
 
 def glFinish():
   print()
+
+r = render.Render(1024,1024)
+r.write('a.bmp')
