@@ -3,8 +3,8 @@ import render
 def glInit():
   print()
 
-def glCreateWindow():
-  print()
+def glCreateWindow(width, height):
+  r = render.Render(width, height)
 
 def glViewPort(x, y, width, height):
   print()
@@ -23,6 +23,3 @@ def glColor(r, g, b):
 
 def glFinish():
   print()
-
-r = render.Render(1024,1024)
-r.write('a.bmp')
