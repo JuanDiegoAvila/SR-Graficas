@@ -37,19 +37,15 @@ def glClearColor(red, green, blue):
 def glVertex(x, y):
     global r
 
-    if x < -1 or x > 1 or y < -1 or y > 1:
-        return
+    r.point(*r.convert_coordinates(x, y))
+
+def glLine(x0, y0, x1, y1):
+    global r
     
-    adjusted_x = x + 1
-    adjusted_y = y + 1
-
-    converted_x = (adjusted_x * r.viewport["width"])/2
-    converted_y = (adjusted_y * r.viewport["height"])/2
-
-    final_x = int(converted_x + r.viewport["x"])
-    final_y = int(converted_y + r.viewport["y"])
-
-    r.point(final_x, final_y)
+    r.line(
+        *r.convert_coordinates(x0, y0), 
+        *r.convert_coordinates(x1, y1)
+    )
 
 def glColor(red, green, blue):
     global r

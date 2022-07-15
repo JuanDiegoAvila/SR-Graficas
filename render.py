@@ -66,9 +66,26 @@ class Render(object):
     self.current_color = color(adjusted_r, adjusted_g, adjusted_b)
 
   def point(self, x, y):
+    print(x, y)
     if x >= 0 and x <= self.width and y >= 0 and y <= self.height:
       self.framebuffer[x][y] = self.current_color
 
+  
+  def convert_coordinates(self, x, y):
+    if x < -1 or x > 1 or y < -1 or y > 1:
+        return
+    
+    adjusted_x = x + 1
+    adjusted_y = y + 1
+
+    converted_x = (adjusted_x * self.viewport["width"])/2
+    converted_y = (adjusted_y * self.viewport["height"])/2
+
+    final_x = int(converted_x + self.viewport["x"])
+    final_y = int(converted_y + self.viewport["y"])
+
+    return final_x, final_y
+  
   def line(self, x0, y0, x1, y1):
     dx = abs(x1 - x0)
     dy = abs(y1 - y0)
@@ -93,7 +110,12 @@ class Render(object):
     threshold= dx
     y = y0
 
-    for x in range(x0, x1):
+    for x in range(x0, x1 + 1):
+      if steep:
+        self.point(y, x)
+      else:
+        self.point(x, y)
+        
       offset += dy * 2
 
       if offset >= threshold:
@@ -101,7 +123,4 @@ class Render(object):
       
         threshold += dx * 2
 
-      if steep:
-        self.point(y, x)
-      else:
-        self.point(x, y)
+      
