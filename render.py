@@ -3,21 +3,30 @@ from color import *
 
 class Render(object):
 
+  def __repr__(self):
+    return "render %s x %s " % (self.width, self.height)
+
   def __init__(self, width, height):
     self.width = width
     self.height = height
     self.current_color = color(0, 0, 0)
+    self.clear_color = color(255, 255, 255)
     self.clear()
   
   def clear(self):
     self.framebuffer = [
-      [self.current_color for x in range(self.width)]
+      [self.clear_color for x in range(self.width)]
       for y in range(self.height)
     ]
 
-  def clear_color(self, r, g, b):
-    self.current_color = color(r, g, b)
-    self.clear()
+  def clamping(self, num):
+    return int(max(min(num, 255), 0))
+
+  def set_clear_color(self, r, g, b):
+    adjusted_r = self.clamping(r * 255)
+    adjusted_g = self.clamping(g * 255)
+    adjusted_b = self.clamping(b * 255)
+    self.clear_color = color(adjusted_r, adjusted_g, adjusted_b)
 
   def write(self, filename):
     f = open(filename, 'bw')
@@ -50,8 +59,15 @@ class Render(object):
 
     f.close()
 
+  def set_current_color(self, r, g, b):
+    adjusted_r = self.clamping(r * 255)
+    adjusted_g = self.clamping(g * 255)
+    adjusted_b = self.clamping(b * 255)
+    self.current_color = color(adjusted_r, adjusted_g, adjusted_b)
+
   def point(self, x, y):
-    self.framebuffer[x][y] = self.current_color
+    if x >= 0 and x <= self.width and y >= 0 and y <= self.height:
+      self.framebuffer[x][y] = self.current_color
 
   def line(self, x0, y0, x1, y1):
     dx = abs(x1 - x0)
@@ -86,17 +102,6 @@ class Render(object):
         threshold += dx * 2
 
       if steep:
-        r.point(y, x)
+        self.point(y, x)
       else:
-        r.point(x, y)
-
-r = Render(100, 100)
-
-r.current_color = color(0, 250, 250)
-  
-#linea(20, 13, 40, 80)
-#linea(80, 40, 13, 20)
-r.line(20, 40, 4, 50)
-#linea(13, 20, 80, 40)
-
-r.write('a.bmp')
+        self.point(x, y)
