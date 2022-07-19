@@ -66,15 +66,14 @@ class Render(object):
     self.current_color = color(adjusted_r, adjusted_g, adjusted_b)
 
   def point(self, x, y):
-    print(x, y)
     if x >= 0 and x <= self.width and y >= 0 and y <= self.height:
       self.framebuffer[x][y] = self.current_color
 
   
   def convert_coordinates(self, x, y):
     if x < -1 or x > 1 or y < -1 or y > 1:
-        return
-    
+      return
+
     adjusted_x = x + 1
     adjusted_y = y + 1
 
