@@ -53,9 +53,9 @@ class Render(object):
     f.write(dword(0))
 
     # pixel data
-    for x in range(self.width):
-      for y in range(self.height):
-        f.write(self.framebuffer[x][y])
+    for x in range(self.height):
+      for y in range(self.width):
+        f.write(self.framebuffer[y][x])
 
     f.close()
 
@@ -94,7 +94,7 @@ class Render(object):
 
     # Se invierte si es empinado
     if steep: 
-      x0, y0 = y0, x1
+      x0, y0 = y0, x0
       x1, y1 = y1, x1 
 
     # Si la linea tiene direccion contraria, invertir
@@ -121,5 +121,3 @@ class Render(object):
         y += 1 if y0 < y1 else -1
       
         threshold += dx * 2
-
-      
