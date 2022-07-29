@@ -1,4 +1,5 @@
 from gl import *
+import vertex
 
 # definicion de pantalla con resolucion 1024 x 1024
 glCreateWindow(400, 400)
@@ -18,6 +19,10 @@ glColor(0.7, 0, 0)
 # chimenea pared izquierda
 
 glColor(0.7, 0, 0)
+
+
+v1 = vertex.Vertex(0, 0.335)
+v2 = vertex.Vertex(0, 0.5)
 
 x0 = 0
 y0 = 0.335
@@ -163,4 +168,4 @@ for i in range(2380):
 
 
 
-glFinish('a.bmp')
+glFinish('casa.bmp')

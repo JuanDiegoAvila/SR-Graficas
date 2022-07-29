@@ -1,5 +1,6 @@
 from writeUtils import *
 from color import *
+import Obj
 
 class Render(object):
 
@@ -66,7 +67,7 @@ class Render(object):
     self.current_color = color(adjusted_r, adjusted_g, adjusted_b)
 
   def point(self, x, y):
-    if x >= 0 and x <= self.width and y >= 0 and y <= self.height:
+    if x >= 0 and x < self.width and y >= 0 and y < self.height:
       self.framebuffer[x][y] = self.current_color
 
   
@@ -121,3 +122,41 @@ class Render(object):
         y += 1 if y0 < y1 else -1
       
         threshold += dx * 2
+
+  def transform_vertex(self, vertex, scale, translate):
+    return [
+        ((vertex[0] * scale[0]) + translate[0]),
+        ((vertex[1] * scale[1]) + translate[1])
+    ]
+
+  def triangle(self, v1, v2, v3):
+    self.line(round(v1[0]), round(v1[1]), round(v2[0]), round(v2[1]))
+    self.line(round(v2[0]), round(v2[1]), round(v3[0]), round(v3[1]))
+    self.line(round(v3[0]), round(v3[1]), round(v1[0]), round(v1[1]))
+
+  def cube(self, v1, v2, v3, v4):
+    self.line(round(v1[0]), round(v1[1]), round(v2[0]), round(v2[1]))
+    self.line(round(v2[0]), round(v2[1]), round(v3[0]), round(v3[1]))
+    self.line(round(v3[0]), round(v3[1]), round(v4[0]), round(v4[1]))
+    self.line(round(v4[0]), round(v4[1]), round(v1[0]), round(v1[1]))
+
+  def generate_object(self, name, scale_factor, translate_factor):
+    cube = Obj.Obj(name)
+
+    for face in cube.faces:
+      if len(face) == 4:
+
+        v1 = self.transform_vertex(cube.vertices[face[0][0] - 1], scale_factor, translate_factor)
+        v2 = self.transform_vertex(cube.vertices[face[1][0] - 1], scale_factor, translate_factor)
+        v3 = self.transform_vertex(cube.vertices[face[2][0] - 1], scale_factor, translate_factor)
+        v4 = self.transform_vertex(cube.vertices[face[3][0] - 1], scale_factor, translate_factor)
+
+        self.cube(v1, v2, v3, v4)
+      
+      if len(face) == 3:
+
+        v1 = self.transform_vertex(cube.vertices[face[0][0] - 1], scale_factor, translate_factor)
+        v2 = self.transform_vertex(cube.vertices[face[1][0] - 1], scale_factor, translate_factor)
+        v3 = self.transform_vertex(cube.vertices[face[2][0] - 1], scale_factor, translate_factor)
+
+        self.triangle(v1, v2, v3)
