@@ -9,8 +9,15 @@ class Obj(object):
     for line in self.lines:
 
       if line:
+
+        if ' ' not in line:
+          continue
+
         prefix, value = line.split(' ', 1)
 
+        if value[0] == ' ':
+          value = '' + value[1:]
+        
         if prefix == 'v':
           self.vertices.append(
             list(
@@ -18,8 +25,8 @@ class Obj(object):
             )
           )
 
-        if prefix == 'f': 
+        if prefix == 'f':
           self.faces.append([
             list(map(int, face.split('/')))
-                for face in value.split(' ')
+                for face in value.split(' ') if face != ''
           ]) 

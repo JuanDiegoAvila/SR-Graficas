@@ -9,8 +9,8 @@ glClearColor(1, 1, 1)
 glClear()
 
 # color de imagen rojo
-glColor(0.7, 0, 0)
+glColor(0, 0, 0)
 
 glRenderObject('batman.obj', (5, 5), (500, 200))
 
-glFinish('batman.bmp')
+glFinish('SR3.bmp')

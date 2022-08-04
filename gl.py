@@ -1,7 +1,6 @@
 import render
 import math
 from polygon import *
-from vertex import Vertex as V
 
 r = None
 
