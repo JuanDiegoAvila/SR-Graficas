@@ -37,14 +37,18 @@ class V3(object):
       self.z - other.z
     )
   
-  def __matmult__(self, other): 
+  def __matmul__(self, other): 
     # Producto punto de vectores
-    return self.x * other.x + self.y * other.y + other.z * other.z
+    return self.x * other.x + self.y * other.y + self.z * other.z
   
   def length(self):
     # Magnitud del vector
-    return (self.x**2 + self.y**2 + self.z**2)**0.5
+    return ((self.x**2 + self.y**2 + self.z**2)**0.5)
 
   def normalize(self): 
-    return self * (1/self.length())
+    if(self.length() == 0):
+      return V3(0, 0, 0)
+    return self * (1 / self.length())
+
+
   

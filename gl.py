@@ -56,6 +56,7 @@ def glColor(red, green, blue):
 def glFinish(name):
     global r
     r.write(name)
+    r.write_z('zBuffer-SR4.bmp')
 
 def glRawPoint(x, y):
     global r

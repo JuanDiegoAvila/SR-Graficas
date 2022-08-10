@@ -1,5 +1,6 @@
 from writeUtils import *
 from color import *
+from vector import V3
 import Obj
 
 class Render(object):
@@ -16,6 +17,16 @@ class Render(object):
   
   def clear(self):
     self.framebuffer = [
+      [self.clear_color for x in range(self.width)]
+      for y in range(self.height)
+    ]
+
+    self.zBuffer = [
+      [-9999 for x in range(self.width)]
+      for y in range(self.height)
+    ]
+
+    self.zClear = [
       [self.clear_color for x in range(self.width)]
       for y in range(self.height)
     ]
@@ -59,6 +70,38 @@ class Render(object):
         f.write(self.framebuffer[y][x])
 
     f.close()
+    
+
+  def write_z(self, filename):
+    f = open(filename, 'bw')
+
+    # pixel header
+    f.write(char('B'))
+    f.write(char('M'))
+    f.write(dword(14 + 40 + self.width * self.height * 3))
+    f.write(word(0))
+    f.write(word(0))
+    f.write(dword(14 + 40))
+
+    # info header
+    f.write(dword(40))
+    f.write(dword(self.width))
+    f.write(dword(self.height))
+    f.write(word(1))
+    f.write(word(24))
+    f.write(dword(0))
+    f.write(dword(self.width * self.height * 3))
+    f.write(dword(0))
+    f.write(dword(0))
+    f.write(dword(0))
+    f.write(dword(0))
+
+    # pixel data
+    for x in range(self.height):
+      for y in range(self.width):
+        f.write(self.zClear[y][x])
+
+    f.close()
 
   def set_current_color(self, r, g, b):
     adjusted_r = self.clamping(r * 255)
@@ -70,7 +113,6 @@ class Render(object):
     if x >= 0 and x < self.width and y >= 0 and y < self.height:
       self.framebuffer[x][y] = self.current_color
 
-  
   def convert_coordinates(self, x, y):
     if x < -1 or x > 1 or y < -1 or y > 1:
       return
@@ -86,7 +128,12 @@ class Render(object):
 
     return final_x, final_y
   
-  def line(self, x0, y0, x1, y1):
+  def line(self, v1, v2):
+    x0 = round(v1.x)
+    x1 = round(v2.x)
+    y0 = round(v1.y)
+    y1 = round(v2.y)
+
     dx = abs(x1 - x0)
     dy = abs(y1 - y0)
 
@@ -124,34 +171,102 @@ class Render(object):
         threshold += dx * 2
 
   def transform_vertex(self, vertex, scale, translate):
-    return [
+    return V3(
         ((vertex[0] * scale[0]) + translate[0]),
-        ((vertex[1] * scale[1]) + translate[1])
-    ]
+        ((vertex[1] * scale[1]) + translate[1]),
+        ((vertex[2] * scale[2]) + translate[2])
+    )
 
-  def triangle(self, v1, v2, v3):
-    self.line(round(v1[0]), round(v1[1]), round(v2[0]), round(v2[1]))
-    self.line(round(v2[0]), round(v2[1]), round(v3[0]), round(v3[1]))
-    self.line(round(v3[0]), round(v3[1]), round(v1[0]), round(v1[1]))
+  def bounding_box(self, A, B, C):
+    coords = [(A.x, A.y), (B.x, B.y), (C.x, C.y)]
+
+    xmin = 999999
+    xmax = -999999
+    ymin = 999999
+    ymax = -999999
+
+    for (x, y) in coords:
+      if x < xmin:
+        xmin = x
+      if x > xmax:
+        xmax = x
+      if y < ymin:
+        ymin = y
+      if y > ymax:
+        ymax = y
+
+    return V3(xmin, ymin), V3(xmax, ymax)
+
+  def cross(self, v1, v2):
+    return (
+        v1.y * v2.z - v1.z * v2.y,
+        v1.z * v2.x - v1.x * v2.z,
+        v1.x * v2.y - v1.y * v2.x
+      )
+
+  def barycetric(self, A, B, C, P):
+    cx, cy, cz = self.cross(
+      V3(B.x - A.x, C.x - A.x, A.x - P.x),
+      V3(B.y - A.y, C.y - A.y, A.y - P.y) 
+    )
+
+    u = cx / cz
+    v = cy / cz
+    w = 1 - (u + v)
+    
+    return (w, v, u)
+
+  def triangle(self, A, B, C):
+
+    N = (C - A) * (B - A)
+    L = V3(0, 0, -1)
+    i = N.normalize() @ L.normalize()
+
+    if i <= 0 or i > 1:
+      return
+
+    grey = round(255 * i)
+
+    self.current_color = color(grey, grey, grey)
+
+    Bmin, Bmax = self.bounding_box(A, B, C)
+    for x in range(round(Bmin.x), round(Bmax.x) + 1):
+      for y in range(round(Bmin.y), round(Bmax.y) + 1):
+        w, v, u = self.barycetric(A, B, C, V3(x, y))
+
+        if (w < 0 or v < 0 or u < 0):
+          continue
+
+        z = A.z * w + B.z * v + C.z * u
+
+        factor = z/self.width
+        if (self.zBuffer[x][y] < z):
+          self.zBuffer[x][y] = z
+          self.zClear[x][y] = color(self.clamping(factor*255), self.clamping(factor*255), self.clamping(factor*255))
+          self.point(x, y)
+    pass
 
   def cube(self, v1, v2, v3, v4):
-    self.line(round(v1[0]), round(v1[1]), round(v2[0]), round(v2[1]))
-    self.line(round(v2[0]), round(v2[1]), round(v3[0]), round(v3[1]))
-    self.line(round(v3[0]), round(v3[1]), round(v4[0]), round(v4[1]))
-    self.line(round(v4[0]), round(v4[1]), round(v1[0]), round(v1[1]))
+    self.line(v1, v2)
+    self.line(v2, v3)
+    self.line(v3, v4)
+    self.line(v4, v1)
 
   def generate_object(self, name, scale_factor, translate_factor):
     cube = Obj.Obj(name)
 
     for face in cube.faces:
       if len(face) == 4:
-
+        
         v1 = self.transform_vertex(cube.vertices[face[0][0] - 1], scale_factor, translate_factor)
         v2 = self.transform_vertex(cube.vertices[face[1][0] - 1], scale_factor, translate_factor)
         v3 = self.transform_vertex(cube.vertices[face[2][0] - 1], scale_factor, translate_factor)
         v4 = self.transform_vertex(cube.vertices[face[3][0] - 1], scale_factor, translate_factor)
 
-        self.cube(v1, v2, v3, v4)
+        #self.cube(v1, v2, v3, v4)
+
+        self.triangle(v1, v2, v3)
+        self.triangle(v1, v3, v4)
       
       if len(face) == 3:
 
