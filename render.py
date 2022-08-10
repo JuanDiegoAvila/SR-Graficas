@@ -128,11 +128,49 @@ class Render(object):
 
     return final_x, final_y
   
-  def line(self, v1, v2):
+  def lineVector(self, v1, v2):
     x0 = round(v1.x)
     x1 = round(v2.x)
     y0 = round(v1.y)
     y1 = round(v2.y)
+
+    dx = abs(x1 - x0)
+    dy = abs(y1 - y0)
+
+    # Si es empinado, poco movimiento en x y mucho en y.
+    steep = dy > dx 
+
+    # Se invierte si es empinado
+    if steep: 
+      x0, y0 = y0, x0
+      x1, y1 = y1, x1 
+
+    # Si la linea tiene direccion contraria, invertir
+    if x0 > x1: 
+      x0, x1 = x1, x0
+      y0, y1 = y1, y0
+
+    dx = abs(x1 - x0)
+    dy = abs(y1 - y0)
+
+    offset = 0 
+    threshold= dx
+    y = y0
+
+    for x in range(x0, x1 + 1):
+      if steep:
+        self.point(y, x)
+      else:
+        self.point(x, y)
+        
+      offset += dy * 2
+
+      if offset >= threshold:
+        y += 1 if y0 < y1 else -1
+      
+        threshold += dx * 2
+  
+  def line(self, x0, y0, x1, y1):
 
     dx = abs(x1 - x0)
     dy = abs(y1 - y0)
@@ -245,12 +283,6 @@ class Render(object):
           self.zClear[x][y] = color(self.clamping(factor*255), self.clamping(factor*255), self.clamping(factor*255))
           self.point(x, y)
     pass
-
-  def cube(self, v1, v2, v3, v4):
-    self.line(v1, v2)
-    self.line(v2, v3)
-    self.line(v3, v4)
-    self.line(v4, v1)
 
   def generate_object(self, name, scale_factor, translate_factor):
     cube = Obj.Obj(name)
