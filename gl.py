@@ -1,6 +1,8 @@
 import render
 import math
 from polygon import *
+from material import * 
+from textures import * 
 
 r = None
 
@@ -56,6 +58,9 @@ def glColor(red, green, blue):
 def glFinish(name):
     global r
     r.write(name)
+
+def glFinishZ(name):
+    global r
     r.write_z('zBuffer-SR4.bmp')
 
 def glRawPoint(x, y):
@@ -73,6 +78,14 @@ def glRawLine(x0, y0, x1, y1):
 
 def glScale(c, cord, factor):
     return (((cord - c)* factor) + c)
+
+def glTexture(texture):
+    global r
+    r.texture = Texture(texture)
+
+def glMaterial(material):
+    global r
+    r.material = Material(material)
 
 def glDrawPolygon(points):
     draw_polygon(points)

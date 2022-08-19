@@ -1,6 +1,7 @@
 from writeUtils import *
 from color import *
 from vector import V3
+from material import Material
 import Obj
 
 class Render(object):
@@ -13,6 +14,8 @@ class Render(object):
     self.height = height
     self.current_color = color(0, 0, 0)
     self.clear_color = color(255, 255, 255)
+    self.texture = None
+    self.material = None
     self.clear()
   
   def clear(self):
@@ -22,7 +25,7 @@ class Render(object):
     ]
 
     self.zBuffer = [
-      [-9999 for x in range(self.width)]
+      [-9999999 for x in range(self.width)]
       for y in range(self.height)
     ]
 
@@ -65,8 +68,8 @@ class Render(object):
     f.write(dword(0))
 
     # pixel data
-    for x in range(self.height):
-      for y in range(self.width):
+    for y in range(self.height):
+      for x in range(self.width):
         f.write(self.framebuffer[y][x])
 
     f.close()
@@ -159,9 +162,9 @@ class Render(object):
 
     for x in range(x0, x1 + 1):
       if steep:
-        self.point(y, x)
-      else:
         self.point(x, y)
+      else:
+        self.point(y, x)
         
       offset += dy * 2
 
@@ -247,14 +250,20 @@ class Render(object):
       V3(B.x - A.x, C.x - A.x, A.x - P.x),
       V3(B.y - A.y, C.y - A.y, A.y - P.y) 
     )
+    if cz == 0:
+      return(-1, -1, -1)
 
     u = cx / cz
     v = cy / cz
-    w = 1 - (u + v)
+    w = 1 - (cx/cz + cy/cz)
     
     return (w, v, u)
 
-  def triangle(self, A, B, C):
+  def triangle(self, vertices, tvertices=[0, 0, 0], material = None):
+    A, B, C = vertices
+
+    if self.texture and tvertices!=[0, 0, 0]:
+      tA, tB, tC = tvertices
 
     N = (C - A) * (B - A)
     L = V3(0, 0, -1)
@@ -278,16 +287,37 @@ class Render(object):
         z = A.z * w + B.z * v + C.z * u
 
         factor = z/self.width
-        if (self.zBuffer[x][y] < z):
-          self.zBuffer[x][y] = z
-          self.zClear[x][y] = color(self.clamping(factor*255), self.clamping(factor*255), self.clamping(factor*255))
-          self.point(x, y)
+
+        try:
+          if (self.zBuffer[x][y] <= z):
+            self.zBuffer[x][y] = z
+            self.zClear[x][y] = color_range(factor, factor, factor)
+            
+            if self.texture and tvertices!=[0, 0, 0] :
+              tx = tA.x * w + tB.x * u + tC.x * v
+              ty = tA.y * w + tB.y * u + tC.y * v
+
+              self.current_color = self.texture.get_color_with_intensity(tx, ty, i)
+            
+            if self.material:
+              if self.material.materials.get(material):
+                self.current_color = color(*[clamping(c * i) for c in self.material.materials[material]['difuse']])
+              else:
+                self.current_color = color(255, 0, 0)
+
+            self.point(y, x)
+        except:
+          continue
+        
+        
     pass
 
   def generate_object(self, name, scale_factor, translate_factor):
     cube = Obj.Obj(name)
 
-    for face in cube.faces:
+    for faceDict in cube.faces:
+
+      face = faceDict['face']
       if len(face) == 4:
         
         v1 = self.transform_vertex(cube.vertices[face[0][0] - 1], scale_factor, translate_factor)
@@ -295,10 +325,22 @@ class Render(object):
         v3 = self.transform_vertex(cube.vertices[face[2][0] - 1], scale_factor, translate_factor)
         v4 = self.transform_vertex(cube.vertices[face[3][0] - 1], scale_factor, translate_factor)
 
-        #self.cube(v1, v2, v3, v4)
+        if self.texture and len(cube.tvertices) != 0:
+          ft1 = face[0][1] - 1
+          ft2 = face[1][1] - 1
+          ft3 = face[2][1] - 1
+          ft4 = face[3][1] - 1
 
-        self.triangle(v1, v2, v3)
-        self.triangle(v1, v3, v4)
+          vt1 = V3(*cube.tvertices[ft1])
+          vt2 = V3(*cube.tvertices[ft2])
+          vt3 = V3(*cube.tvertices[ft3])
+          vt4 = V3(*cube.tvertices[ft4])
+
+          self.triangle((v1, v2, v3), (vt1, vt2, vt3), material = faceDict['material'])
+          self.triangle((v1, v3, v4), (vt1, vt3, vt4), material = faceDict['material'])
+        else:
+          self.triangle((v1, v2, v3), material = faceDict['material'])
+          self.triangle((v1, v3, v4), material = faceDict['material'])
       
       if len(face) == 3:
 
@@ -306,4 +348,16 @@ class Render(object):
         v2 = self.transform_vertex(cube.vertices[face[1][0] - 1], scale_factor, translate_factor)
         v3 = self.transform_vertex(cube.vertices[face[2][0] - 1], scale_factor, translate_factor)
 
-        self.triangle(v1, v2, v3)
+        if self.texture and len(cube.tvertices) != 0:
+
+          ft1 = face[0][1] - 1
+          ft2 = face[1][1] - 1
+          ft3 = face[2][1] - 1
+
+          vt1 = V3(*cube.tvertices[ft1])
+          vt2 = V3(*cube.tvertices[ft2])
+          vt3 = V3(*cube.tvertices[ft3])
+
+          self.triangle((v1, v2, v3), (vt1, vt2, vt3), material = faceDict['material'])
+        else:
+          self.triangle((v1, v2, v3), material = faceDict['material'])
