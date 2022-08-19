@@ -4,6 +4,8 @@ from vector import V3
 from render import Render
 from Obj import Obj
 
+# ----------- dibujar los vertices de la textura -----------------
+
 r = Render(1024, 1024)
 t = Texture('./modelos_prueba/IG.bmp')
 
@@ -40,9 +42,11 @@ for faceDict in cube.faces:
 
 r.write("textura_vertices_SR5.bmp")
 
+# ---------- cargar modelo con su textura -------------------
+
 glCreateWindow(1024, 1024)
 
-# color blanco de fondo
+# color negro de fondo
 glClearColor(0, 0, 0)
 glClear()
 
@@ -52,15 +56,18 @@ glColor(0, 0, 0)
 
 #glTexture('./modelos_prueba/model.bmp')
 #glTexture('./modelos_prueba/earth.bmp')
-
 #glMaterial('./modelos_prueba/IGCG.mtl')  -- prueba de material .mtl en obj
 
+# --------- se coloca unicamente la direccion del archivo bmp ------------
 glTexture('./modelos_prueba/IG.bmp')
 
+# --------- se coloca la direccion del archivo obj, el scale factor y translate factor ------------
 glRenderObject('./modelos_prueba/IGCG.obj', (400, 400, 400), (500, 50, 0))
 #glRenderObject('batman.obj', (5, 5, 10), (500, 200, 0))
 #glRenderObject('./modelos_prueba/earth.obj', (1, 1, 1.5), (500, 500, 0))
 #glRenderObject('./modelos_prueba/model.obj', (500, 500, 500), (500, 500, 0))
 #glRenderObject('./modelos_prueba/natsuki.obj', (500, 500, 500), (500, 500, 0))
 
+
+# --------- se coloca el nombre del archivo que se quiere escribir  ------------
 glFinish('textura_SR5.bmp')
