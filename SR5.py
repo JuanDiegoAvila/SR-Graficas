@@ -17,6 +17,34 @@ r.current_color = color(255, 255, 255)
 for faceDict in cube.faces:
   face = faceDict['face']
 
+  if len(face) == 4:
+    ft1 = face[0][1] - 1
+    ft2 = face[1][1] - 1
+    ft3 = face[2][1] - 1
+    ft4 = face[3][1] - 1
+
+    vt1 = V3(
+      cube.tvertices[ft1][0] * t.width,
+      cube.tvertices[ft1][1] * t.width
+    )
+    vt2 = V3(
+      cube.tvertices[ft2][0] * t.width,
+      cube.tvertices[ft2][1] * t.width
+    )
+    vt3 = V3(
+      cube.tvertices[ft3][0] * t.width,
+      cube.tvertices[ft3][1] * t.width
+    )
+    vt4 = V3(
+      cube.tvertices[ft4][0] * t.width,
+      cube.tvertices[ft4][1] * t.width
+    )
+    
+    r.lineVector(vt1, vt2)
+    r.lineVector(vt2, vt3)
+    r.lineVector(vt3, vt4)
+    r.lineVector(vt4, vt1)
+
   if len(face) == 3:
 
     ft1 = face[0][1] - 1
