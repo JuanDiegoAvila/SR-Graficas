@@ -67,9 +67,9 @@ def glRawPoint(x, y):
     global r
     r.point(x, y)
 
-def glRenderObject(name, scale_factor, translate_factor):
+def glRenderObject(name, scale_factor, translate_factor, rotation = (0, 0, 0)):
     global r
-    r.generate_object(name, scale_factor, translate_factor)
+    r.generate_object(name, scale_factor, translate_factor, rotation)
 
 def glRawLine(x0, y0, x1, y1):
     global r
@@ -86,6 +86,10 @@ def glTexture(texture):
 def glMaterial(material):
     global r
     r.material = Material(material)
+
+def glWireframe(name, scale_factor, translate_factor, rotation = (0, 0, 0)):
+    global r
+    r.generate_wireframe(name, scale_factor, translate_factor, rotation)
 
 def glDrawPolygon(points):
     draw_polygon(points)
