@@ -22,8 +22,11 @@ def glCreateWindow(width, height):
 
 def glViewPort(x, y, width, height):
     global r
-
-    r.viewport = {
+    r.loadViewportMatrix(
+        width if width < r.width else r.width - x - 1, 
+        height if height < r.height else r.height - y - 1
+    )
+    r.viewport_param = {
         "x" : x,
         "y" : y,
         "width" : width if width < r.width else r.width - x - 1,
@@ -67,9 +70,13 @@ def glRawPoint(x, y):
     global r
     r.point(x, y)
 
-def glRenderObject(name, scale_factor, translate_factor, rotation = (0, 0, 0)):
+def glRenderObject(name, scale, translate, rotate = (0, 0, 0)):
     global r
-    r.generate_object(name, scale_factor, translate_factor, rotation)
+    r.generate_object(name, scale, translate, rotate)
+
+def glLookAt(eyes, center, up):
+    global r
+    r.lookAt(eyes, center, up)
 
 def glRawLine(x0, y0, x1, y1):
     global r

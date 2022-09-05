@@ -18,6 +18,8 @@ class Render(object):
     self.texture = None
     self.material = None
     self.Model = None
+    self.View = None
+    self.Projection = None
     self.clear()
 
   def loadModelMatrix(self, translate=(0, 0, 0), scale=(1, 1, 1), rotate=(0, 0, 0)):
@@ -50,9 +52,9 @@ class Render(object):
     a = rotate.y
     rotation_y = matriz([
       [cos(a) , 0, sin(a), 0],
-      [0      , 1     , 0, 0],
+      [0      , 1,      0, 0],
       [-sin(a), 0, cos(a), 0],
-      [0      , 0     , 0, 1]
+      [0      , 0,      0, 1]
     ])
 
     a = rotate.z
@@ -66,6 +68,59 @@ class Render(object):
     rotation_matrix = rotation_x * rotation_y * rotation_z
     self.Model = translation_matrix * rotation_matrix * scale_matrix
   
+  def loadViewMatrix(self, x, y, z, center):
+    
+    Mi = matriz([
+      [x.x, x.y, x.z, 0],
+      [y.x, y.y, y.z, 0],
+      [z.x, z.y, z.z, 0],
+      [0  , 0  , 0  , 1],
+    ])
+
+    O = matriz([
+      [1, 0, 0, -center.x],
+      [0, 1, 0, -center.y],
+      [0, 0, 1, -center.z],
+      [0, 0, 0,         1]
+    ])
+
+    self.View = Mi * O
+
+  def loadProjectionViewMatrix(self, eyes, center):
+    coeff = -1/(eyes.length() - center.length())
+    self.Projection = matriz([
+      [1, 0,      0, 0],
+      [0, 1,      0, 0],
+      [0, 0,      1, 0],
+      [0, 0, coeff, 1]
+    ])
+
+  def loadViewportMatrix(self, width = 0, height = 0):
+    x = 0
+    y = 0
+    w = width if width != 0 else self.width/2
+    h = height if height != 0 else self.height/2
+
+    self.Viewport = matriz([
+      [w, 0,   0, x + w],
+      [0, h,   0, y + h],
+      [0, 0, 128,   128],
+      [0, 0,   0,     1]
+    ])
+
+  def lookAt(self, eyes, center, up):
+    eyes = V3(*eyes)
+    center = V3(*center)
+    up = V3(*up)
+
+    z = (eyes - center).normalize()
+    x = (up * z).normalize()
+    y = (z * x).normalize()
+
+    self.loadViewMatrix(x, y, z, center)
+    self.loadProjectionViewMatrix(eyes, center)
+
+
   def clear(self):
     self.framebuffer = [
       [self.clear_color for x in range(self.width)]
@@ -171,11 +226,11 @@ class Render(object):
     adjusted_x = x + 1
     adjusted_y = y + 1
 
-    converted_x = (adjusted_x * self.viewport["width"])/2
-    converted_y = (adjusted_y * self.viewport["height"])/2
+    converted_x = (adjusted_x * self.viewport_param["width"])/2
+    converted_y = (adjusted_y * self.viewport_param["height"])/2
 
-    final_x = int(converted_x + self.viewport["x"])
-    final_y = int(converted_y + self.viewport["y"])
+    final_x = int(converted_x + self.viewport_param["x"])
+    final_y = int(converted_y + self.viewport_param["y"])
 
     return final_x, final_y
   
@@ -266,7 +321,12 @@ class Render(object):
       [vertex[2]],
       [1]
     ])
-    transformed_vertex = self.Model * augmented_vertex
+
+    if(self.View and self.Projection):
+      transformed_vertex = self.Viewport * self.Projection * self.View * self.Model * augmented_vertex
+    else:
+      transformed_vertex = self.Model * augmented_vertex
+
     transformed_vertex = transformed_vertex.matriz
 
     return V3(
