@@ -74,6 +74,10 @@ def glRenderObject(name, scale, translate, rotate = (0, 0, 0)):
     global r
     r.generate_object(name, scale, translate, rotate)
 
+def glShader():
+    global r
+    r.active_shader = r.shader
+
 def glLookAt(eyes, center, up):
     global r
     r.lookAt(eyes, center, up)

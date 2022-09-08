@@ -8,10 +8,7 @@ glClearColor(0, 0, 0)
 glClear()
 
 # crea un viewport de 1024 x 1024
-glViewPort(0, 0, 1024, 1024)
-
-# color de imagen rojo
-glColor(1, 1, 1)
+glViewPort(0, 0, 800, 800)
 
 # carga la textura
 glTexture('./modelos_prueba/IG.bmp')

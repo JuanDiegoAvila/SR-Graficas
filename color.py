@@ -6,3 +6,4 @@ def color_range(r, g, b):
 
 def clamping(num):
     return int(max(min(num, 255), 0))
+

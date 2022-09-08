@@ -36,9 +36,11 @@ class Texture:
   def get_color_with_intensity(self, tx, ty, intensity):
     x = round(tx * self.width)
     y = round(ty * self.height)
-
     b = round(self.pixels[y][x][0] * intensity)
     g = round(self.pixels[y][x][1] * intensity)
     r = round(self.pixels[y][x][2] * intensity)
 
-    return color(r, g, b)
+    return color(self.clamping(r), self.clamping(g), self.clamping(b))
+
+  def clamping(self, num):
+    return int(max(min(num, 255), 0))

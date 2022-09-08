@@ -20,6 +20,9 @@ class Render(object):
     self.Model = None
     self.View = None
     self.Projection = None
+    self.active_shader = None
+    self.nv = False
+    self.vertex_buffer_object = []
     self.clear()
 
   def loadModelMatrix(self, translate=(0, 0, 0), scale=(1, 1, 1), rotate=(0, 0, 0)):
@@ -376,11 +379,20 @@ class Render(object):
     
     return (w, v, u)
 
-  def triangle(self, vertices, tvertices=[0, 0, 0], material = None):
-    A, B, C = vertices
+  def triangle(self):
+    A = next(self.vertex_buffer_object)
+    B = next(self.vertex_buffer_object)
+    C = next(self.vertex_buffer_object)
 
-    if self.texture and tvertices!=[0, 0, 0]:
-      tA, tB, tC = tvertices
+    if self.texture:
+      tA = next(self.vertex_buffer_object)
+      tB = next(self.vertex_buffer_object)
+      tC = next(self.vertex_buffer_object)
+    
+    if self.active_shader:
+      nA = next(self.vertex_buffer_object)
+      nB = next(self.vertex_buffer_object)
+      nC = next(self.vertex_buffer_object)
 
     N = (C - A) * (B - A)
     L = V3(0, 0, -1)
@@ -394,6 +406,7 @@ class Render(object):
     self.current_color = color(grey, grey, grey)
 
     Bmin, Bmax = self.bounding_box(A, B, C)
+
     for x in range(round(Bmin.x), round(Bmax.x) + 1):
       for y in range(round(Bmin.y), round(Bmax.y) + 1):
         w, v, u = self.barycetric(A, B, C, V3(x, y))
@@ -402,32 +415,53 @@ class Render(object):
           continue
 
         z = A.z * w + B.z * v + C.z * u
-
         factor = z/self.width
 
-        try:
-          if (self.zBuffer[x][y] <= z):
-            self.zBuffer[x][y] = z
-            self.zClear[x][y] = color_range(factor, factor, factor)
-            
-            if self.texture and tvertices!=[0, 0, 0] :
+        if (self.zBuffer[x][y] <= z):
+          self.zBuffer[x][y] = z
+          self.zClear[x][y] = color_range(factor, factor, factor)
+
+          if(self.active_shader):
+            self.current_color = self.active_shader(
+              bar=(w, u, v),
+              vertices=(A, B, C),
+              texture_coords=(tA, tB, tC),
+              normals=(nA, nB, nC),
+              light = L
+            )
+
+          else:
+            if self.texture:
               tx = tA.x * w + tB.x * u + tC.x * v
               ty = tA.y * w + tB.y * u + tC.y * v
 
               self.current_color = self.texture.get_color_with_intensity(tx, ty, i)
-            
-            if self.material:
-              if self.material.materials.get(material):
-                self.current_color = color(*[clamping(c * i) for c in self.material.materials[material]['difuse']])
-              else:
-                self.current_color = color(255, 0, 0)
-
-            self.point(y, x)
-        except:
-          continue
-        
-        
+            #if self.material:
+              #if self.material.materials.get(self.material):
+                #self.current_color = color(*[clamping(c * i) for c in self.material.materials[self.material]['difuse']])
+              #else:
+                #self.current_color = color(255, 0, 0)
+          self.point(y, x)
     pass
+
+  def shader(self, **kwargs):
+    w, u, v = kwargs['bar']
+    tA, tB, tC = kwargs['texture_coords']
+    A, B, C = kwargs['vertices']
+    L = kwargs['light']
+    nA, nB, nC = kwargs['normals']
+
+    iA = nA.normalize() @ L.normalize()
+    iB = nB.normalize() @ L.normalize()
+    iC = nC.normalize() @ L.normalize()
+
+    i = iA * w + iB * u + iC * v
+    
+    if self.texture:
+      tx = tA.x * w + tB.x * u + tC.x * v
+      ty = tA.y * w + tB.y * u + tC.y * v
+      
+      return self.texture.get_color_with_intensity(tx, ty, i)
 
   def generate_object(self, name, scale=(0, 0, 0), translate=(0, 0, 0), rotate=(0, 0, 0)):
     self.loadModelMatrix(translate, scale, rotate)
@@ -454,18 +488,57 @@ class Render(object):
           vt3 = V3(*cube.tvertices[ft3])
           vt4 = V3(*cube.tvertices[ft4])
 
-          self.triangle((v1, v2, v3), (vt1, vt2, vt3), material = faceDict['material'])
-          self.triangle((v1, v3, v4), (vt1, vt3, vt4), material = faceDict['material'])
+          #self.material = faceDict['material']
+          self.vertex_buffer_object.append(v1)
+          self.vertex_buffer_object.append(v2)
+          self.vertex_buffer_object.append(v3)
+          self.vertex_buffer_object.append(vt1)
+          self.vertex_buffer_object.append(vt2)
+          self.vertex_buffer_object.append(vt3)
+
+          self.vertex_buffer_object.append(v1)
+          self.vertex_buffer_object.append(v3)
+          self.vertex_buffer_object.append(v4)
+          self.vertex_buffer_object.append(vt1)
+          self.vertex_buffer_object.append(vt3)
+          self.vertex_buffer_object.append(vt4)
+
         else:
-          self.triangle((v1, v2, v3), material = faceDict['material'])
-          self.triangle((v1, v3, v4), material = faceDict['material'])
-      
+          self.vertex_buffer_object.append(v1)
+          self.vertex_buffer_object.append(v2)
+          self.vertex_buffer_object.append(v3)
+
+          self.vertex_buffer_object.append(v1)
+          self.vertex_buffer_object.append(v3)
+          self.vertex_buffer_object.append(v4)
+
+        if (len(cube.nvertices)!=0 and self.active_shader):
+            
+            fn1 = face[0][2] - 1
+            fn2 = face[1][2] - 1
+            fn3 = face[2][2] - 1
+            fn4 = face[3][2] - 1
+
+            vn1 = V3(*cube.nvertices[fn1])
+            vn2 = V3(*cube.nvertices[fn2])
+            vn3 = V3(*cube.nvertices[fn3])
+            vn4 = V3(*cube.nvertices[fn4])
+
+            self.vertex_buffer_object.append(vn1)
+            self.vertex_buffer_object.append(vn2)
+            self.vertex_buffer_object.append(vn3)
+
+            self.vertex_buffer_object.append(vn1)
+            self.vertex_buffer_object.append(vn3)
+            self.vertex_buffer_object.append(vn4)
+
       if len(face) == 3:
 
         v1 = self.transform_vertex(cube.vertices[face[0][0] - 1])
         v2 = self.transform_vertex(cube.vertices[face[1][0] - 1])
         v3 = self.transform_vertex(cube.vertices[face[2][0] - 1])
 
+        # puede no tener 
         if self.texture and len(cube.tvertices) != 0:
 
           ft1 = face[0][1] - 1
@@ -476,9 +549,43 @@ class Render(object):
           vt2 = V3(*cube.tvertices[ft2])
           vt3 = V3(*cube.tvertices[ft3])
 
-          self.triangle((v1, v2, v3), (vt1, vt2, vt3), material = faceDict['material'])
+          #self.material = faceDict['material']
+          self.vertex_buffer_object.append(v1)
+          self.vertex_buffer_object.append(v2)
+          self.vertex_buffer_object.append(v3)
+          self.vertex_buffer_object.append(vt1)
+          self.vertex_buffer_object.append(vt2)
+          self.vertex_buffer_object.append(vt3)
+
         else:
-          self.triangle((v1, v2, v3), material = faceDict['material'])
+          #self.material = faceDict['material']
+          self.vertex_buffer_object.append(v1)
+          self.vertex_buffer_object.append(v2)
+          self.vertex_buffer_object.append(v3)
+
+        if (len(cube.nvertices)!=0 and self.active_shader):
+          
+          fn1 = face[0][2] - 1
+          fn2 = face[1][2] - 1
+          fn3 = face[2][2] - 1
+
+          vn1 = V3(*cube.nvertices[fn1])
+          vn2 = V3(*cube.nvertices[fn2])
+          vn3 = V3(*cube.nvertices[fn3])
+
+          self.vertex_buffer_object.append(vn1)
+          self.vertex_buffer_object.append(vn2)
+          self.vertex_buffer_object.append(vn3)
+
+    self.generar()
+
+  def generar(self):
+    self.vertex_buffer_object = iter(self.vertex_buffer_object)
+    try:
+      while(True):
+          self.triangle()
+    except Exception as e: 
+      StopIteration      
 
   def generate_wireframe(self, name, scale=(0, 0, 0), translate=(0, 0, 0), rotate=(0, 0, 0)):
     self.loadModelMatrix(translate, scale, rotate)
