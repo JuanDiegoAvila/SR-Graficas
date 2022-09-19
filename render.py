@@ -21,7 +21,6 @@ class Render(object):
     self.View = None
     self.Projection = None
     self.active_shader = None
-    self.nv = False
     self.vertex_buffer_object = []
     self.clear()
 
@@ -105,8 +104,8 @@ class Render(object):
     h = height if height != 0 else self.height/2
 
     self.Viewport = matriz([
-      [w, 0,   0, x + w],
-      [0, h,   0, y + h],
+      [w, 0,   0, x + (w/2)],
+      [0, h,   0, y + (h/2)],
       [0, 0, 128,   128],
       [0, 0,   0,     1]
     ])
@@ -122,7 +121,6 @@ class Render(object):
 
     self.loadViewMatrix(x, y, z, center)
     self.loadProjectionViewMatrix(eyes, center)
-
 
   def clear(self):
     self.framebuffer = [
@@ -180,7 +178,6 @@ class Render(object):
 
     f.close()
     
-
   def write_z(self, filename):
     f = open(filename, 'bw')
 
@@ -365,7 +362,7 @@ class Render(object):
         v1.x * v2.y - v1.y * v2.x
       )
 
-  def barycetric(self, A, B, C, P):
+  def barycentric(self, A, B, C, P):
     cx, cy, cz = self.cross(
       V3(B.x - A.x, C.x - A.x, A.x - P.x),
       V3(B.y - A.y, C.y - A.y, A.y - P.y) 
@@ -409,7 +406,7 @@ class Render(object):
 
     for x in range(round(Bmin.x), round(Bmax.x) + 1):
       for y in range(round(Bmin.y), round(Bmax.y) + 1):
-        w, v, u = self.barycetric(A, B, C, V3(x, y))
+        w, v, u = self.barycentric(A, B, C, V3(x, y))
 
         if (w < 0 or v < 0 or u < 0):
           continue
@@ -420,21 +417,22 @@ class Render(object):
         if (self.zBuffer[x][y] <= z):
           self.zBuffer[x][y] = z
           self.zClear[x][y] = color_range(factor, factor, factor)
-
+          
           if(self.active_shader):
             self.current_color = self.active_shader(
               bar=(w, u, v),
               vertices=(A, B, C),
-              texture_coords=(tA, tB, tC),
+              texture_coords= (tA, tB, tC) if self.texture else None,
               normals=(nA, nB, nC),
-              light = L
+              light = L,
+              texture = self.texture,
+              height = y
             )
 
           else:
             if self.texture:
               tx = tA.x * w + tB.x * u + tC.x * v
               ty = tA.y * w + tB.y * u + tC.y * v
-
               self.current_color = self.texture.get_color_with_intensity(tx, ty, i)
             #if self.material:
               #if self.material.materials.get(self.material):
@@ -442,26 +440,6 @@ class Render(object):
               #else:
                 #self.current_color = color(255, 0, 0)
           self.point(y, x)
-    pass
-
-  def shader(self, **kwargs):
-    w, u, v = kwargs['bar']
-    tA, tB, tC = kwargs['texture_coords']
-    A, B, C = kwargs['vertices']
-    L = kwargs['light']
-    nA, nB, nC = kwargs['normals']
-
-    iA = nA.normalize() @ L.normalize()
-    iB = nB.normalize() @ L.normalize()
-    iC = nC.normalize() @ L.normalize()
-
-    i = iA * w + iB * u + iC * v
-    
-    if self.texture:
-      tx = tA.x * w + tB.x * u + tC.x * v
-      ty = tA.y * w + tB.y * u + tC.y * v
-      
-      return self.texture.get_color_with_intensity(tx, ty, i)
 
   def generate_object(self, name, scale=(0, 0, 0), translate=(0, 0, 0), rotate=(0, 0, 0)):
     self.loadModelMatrix(translate, scale, rotate)
@@ -471,7 +449,6 @@ class Render(object):
 
       face = faceDict['face']
       if len(face) == 4:
-        
         v1 = self.transform_vertex(cube.vertices[face[0][0] - 1])
         v2 = self.transform_vertex(cube.vertices[face[1][0] - 1])
         v3 = self.transform_vertex(cube.vertices[face[2][0] - 1])
@@ -495,6 +472,20 @@ class Render(object):
           self.vertex_buffer_object.append(vt1)
           self.vertex_buffer_object.append(vt2)
           self.vertex_buffer_object.append(vt3)
+          
+          if (len(cube.nvertices)!=0 and self.active_shader):
+            
+            fn1 = face[0][2] - 1
+            fn2 = face[1][2] - 1
+            fn3 = face[2][2] - 1
+
+            vn1 = V3(*cube.nvertices[fn1])
+            vn2 = V3(*cube.nvertices[fn2])
+            vn3 = V3(*cube.nvertices[fn3])
+
+            self.vertex_buffer_object.append(vn1)
+            self.vertex_buffer_object.append(vn2)
+            self.vertex_buffer_object.append(vn3)
 
           self.vertex_buffer_object.append(v1)
           self.vertex_buffer_object.append(v3)
@@ -503,17 +494,26 @@ class Render(object):
           self.vertex_buffer_object.append(vt3)
           self.vertex_buffer_object.append(vt4)
 
+          if (len(cube.nvertices)!=0 and self.active_shader):
+            
+            fn1 = face[0][2] - 1
+            fn3 = face[2][2] - 1
+            fn4 = face[3][2] - 1
+
+            vn1 = V3(*cube.nvertices[fn1])
+            vn3 = V3(*cube.nvertices[fn3])
+            vn4 = V3(*cube.nvertices[fn4])
+
+            self.vertex_buffer_object.append(vn1)
+            self.vertex_buffer_object.append(vn3)
+            self.vertex_buffer_object.append(vn4)
+
         else:
           self.vertex_buffer_object.append(v1)
           self.vertex_buffer_object.append(v2)
           self.vertex_buffer_object.append(v3)
 
-          self.vertex_buffer_object.append(v1)
-          self.vertex_buffer_object.append(v3)
-          self.vertex_buffer_object.append(v4)
-
-        if (len(cube.nvertices)!=0 and self.active_shader):
-            
+          if (len(cube.nvertices)!=0 and self.active_shader):
             fn1 = face[0][2] - 1
             fn2 = face[1][2] - 1
             fn3 = face[2][2] - 1
@@ -528,12 +528,26 @@ class Render(object):
             self.vertex_buffer_object.append(vn2)
             self.vertex_buffer_object.append(vn3)
 
+          self.vertex_buffer_object.append(v1)
+          self.vertex_buffer_object.append(v3)
+          self.vertex_buffer_object.append(v4)
+
+          if (len(cube.nvertices)!=0 and self.active_shader):
+            fn1 = face[0][2] - 1
+            fn2 = face[1][2] - 1
+            fn3 = face[2][2] - 1
+            fn4 = face[3][2] - 1
+
+            vn1 = V3(*cube.nvertices[fn1])
+            vn2 = V3(*cube.nvertices[fn2])
+            vn3 = V3(*cube.nvertices[fn3])
+            vn4 = V3(*cube.nvertices[fn4])
+
             self.vertex_buffer_object.append(vn1)
             self.vertex_buffer_object.append(vn3)
             self.vertex_buffer_object.append(vn4)
 
       if len(face) == 3:
-
         v1 = self.transform_vertex(cube.vertices[face[0][0] - 1])
         v2 = self.transform_vertex(cube.vertices[face[1][0] - 1])
         v3 = self.transform_vertex(cube.vertices[face[2][0] - 1])
@@ -564,7 +578,6 @@ class Render(object):
           self.vertex_buffer_object.append(v3)
 
         if (len(cube.nvertices)!=0 and self.active_shader):
-          
           fn1 = face[0][2] - 1
           fn2 = face[1][2] - 1
           fn3 = face[2][2] - 1

@@ -43,3 +43,6 @@ class matriz(object):
 
     except:
       print('Error en la multiplicación!')
+  
+  def __repr__(self):
+    return str(self.matriz)

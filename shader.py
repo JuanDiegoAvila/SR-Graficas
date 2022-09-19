@@ -12,12 +12,14 @@ glViewPort(0, 0, 1024, 1024)
 
 # carga la textura
 glTexture('./modelos_prueba/model.bmp')
+#glTexture('./modelos_prueba/IG.bmp')
 
 glLookAt((0, 0, 10), (0, 0, 0), (0, 1, 0))
 
-#glShader()
+glShader()
 # renderiza el objeto con su estala, traslación y rotación
 glRenderObject('./modelos_prueba/model.obj', scale = (0.8, 0.8, 0.8), translate = (0, 0, 0), rotate = (0, 0.7, 0))
+#glRenderObject('./modelos_prueba/IGCG.obj', scale = (0.45, 0.45, 0.45), translate = (0, -0.7, 0), rotate = (0, 0, 0))
 
 # escribe el bmp
 glFinish('shader.bmp')

@@ -3,6 +3,7 @@ import math
 from polygon import *
 from material import * 
 from textures import * 
+import shaders
 
 r = None
 
@@ -23,8 +24,8 @@ def glCreateWindow(width, height):
 def glViewPort(x, y, width, height):
     global r
     r.loadViewportMatrix(
-        width if width < r.width else r.width - x - 1, 
-        height if height < r.height else r.height - y - 1
+        width if width < r.width else r.width - x, 
+        height if height < r.height else r.height - y
     )
     r.viewport_param = {
         "x" : x,
@@ -74,9 +75,12 @@ def glRenderObject(name, scale, translate, rotate = (0, 0, 0)):
     global r
     r.generate_object(name, scale, translate, rotate)
 
-def glShader():
+def glShader(shader = None):
     global r
-    r.active_shader = r.shader
+    if shader:
+        r.active_shader = shader
+    else:
+        r.active_shader = shaders.default
 
 def glLookAt(eyes, center, up):
     global r
