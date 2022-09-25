@@ -108,3 +108,7 @@ def glWireframe(name, scale_factor, translate_factor, rotation = (0, 0, 0)):
 
 def glDrawPolygon(points):
     draw_polygon(points)
+
+def glBackground(texture):
+    global r
+    r.framebuffer = texture.pixels

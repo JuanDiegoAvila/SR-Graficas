@@ -24,8 +24,14 @@ def planeta(**kwargs):
         return color(clamping(200 * i), clamping(180* i), clamping(148 * i))
     if y <= 615 and y > 590:
         return color(clamping(119 * i), clamping(106* i), clamping(87 * i))
-    if y <= 590:
+    if y <= 590 and y > 470:
         return color(clamping(154 * i), clamping(139 * i), clamping(114 * i))
+    if y <= 470 and y > 430:
+        return color(clamping(119 * i), clamping(106* i), clamping(87 * i))
+    if y <= 430 and y > 400:
+        return color(clamping(200 * i), clamping(180* i), clamping(148 * i))
+    if y <= 400 and y > 380:
+        return color(clamping(103 * i), clamping(92 * i), clamping(77 * i))
     else:
         return color(clamping(95* i), clamping(85 * i), clamping(70 * i))
 
