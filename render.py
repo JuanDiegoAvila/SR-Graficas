@@ -443,6 +443,7 @@ class Render(object):
 
   def generate_object(self, name, scale=(0, 0, 0), translate=(0, 0, 0), rotate=(0, 0, 0)):
     self.loadModelMatrix(translate, scale, rotate)
+    self.vertex_buffer_object = []
     cube = Obj.Obj(name)
 
     for faceDict in cube.faces:

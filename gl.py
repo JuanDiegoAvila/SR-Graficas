@@ -102,9 +102,9 @@ def glMaterial(material):
     global r
     r.material = Material(material)
 
-def glWireframe(name, scale_factor, translate_factor, rotation = (0, 0, 0)):
+def glWireframe(name, scale, translate, rotate = (0, 0, 0)):
     global r
-    r.generate_wireframe(name, scale_factor, translate_factor, rotation)
+    r.generate_wireframe(name, scale, translate, rotate)
 
 def glDrawPolygon(points):
     draw_polygon(points)

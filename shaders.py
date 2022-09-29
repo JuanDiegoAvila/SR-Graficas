@@ -18,13 +18,13 @@ def planeta(**kwargs):
     if y <= 900 and y > 890:
         return color(clamping(133*i), clamping(112*i), clamping(93*i))
     if y <= 890 and y > 875:
-        return color(clamping(150*i), clamping(130*i), clamping(105*i))
+        return color(clamping(191*i), clamping(130*i), clamping(105*i))
     if y <= 875 and y > 840:
         return color(clamping(156*i), clamping(139*i), clamping(100*i))
     if y <= 840 and y > 730:
-        return color(clamping(156*i), clamping(139*i), clamping(100*i))
+        return color(clamping(189*i), clamping(169*i), clamping(135*i))
     if y <= 730 and y > 700:
-        return color(clamping(170*i), clamping(128*i), clamping(100*i))
+        return color(clamping(191*i), clamping(172*i), clamping(133*i))
     if y <= 700 and y > 650:
         return color(clamping(191*i), clamping(173*i), clamping(143*i))
     if y <= 650 and y > 620:

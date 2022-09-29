@@ -51,9 +51,10 @@ class Obj(object):
           )
 
         if prefix == 'f':
+          temp = value.replace('//', '/0/')
           act_face = [
             list(map(int, face.split('/')))
-                for face in value.split(' ') if face != ''
+                for face in temp.split(' ') if face != ''
           ]
           self.faces.append({ 
             'material': self.current_material,
