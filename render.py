@@ -1,7 +1,7 @@
 from math import *
 from writeUtils import *
 from matrix import matriz
-from color import *
+import color as c 
 from vector import V3
 import Obj
 
@@ -13,15 +13,17 @@ class Render(object):
   def __init__(self, width, height):
     self.width = width
     self.height = height
-    self.current_color = color(0, 0, 0)
-    self.clear_color = color(255, 255, 255)
+    self.current_color = c.color(0, 0, 0)
+    self.clear_color = c.color(255, 255, 255)
     self.texture = None
     self.material = None
     self.Model = None
+    self.light = V3(0, 0, -1)
     self.View = None
     self.Projection = None
     self.active_shader = None
     self.vertex_buffer_object = []
+    self.normal_map = None
     self.clear()
 
   def loadModelMatrix(self, translate=(0, 0, 0), scale=(1, 1, 1), rotate=(0, 0, 0)):
@@ -145,7 +147,7 @@ class Render(object):
     adjusted_r = self.clamping(r * 255)
     adjusted_g = self.clamping(g * 255)
     adjusted_b = self.clamping(b * 255)
-    self.clear_color = color(adjusted_r, adjusted_g, adjusted_b)
+    self.clear_color = c.color(adjusted_r, adjusted_g, adjusted_b)
 
   def write(self, filename):
     f = open(filename, 'bw')
@@ -213,7 +215,7 @@ class Render(object):
     adjusted_r = self.clamping(r * 255)
     adjusted_g = self.clamping(g * 255)
     adjusted_b = self.clamping(b * 255)
-    self.current_color = color(adjusted_r, adjusted_g, adjusted_b)
+    self.current_color = c.color(adjusted_r, adjusted_g, adjusted_b)
 
   def point(self, x, y):
     if x >= 0 and x < self.width and y >= 0 and y < self.height:
@@ -377,6 +379,7 @@ class Render(object):
     return (w, v, u)
 
   def triangle(self):
+
     A = next(self.vertex_buffer_object)
     B = next(self.vertex_buffer_object)
     C = next(self.vertex_buffer_object)
@@ -391,57 +394,76 @@ class Render(object):
       nB = next(self.vertex_buffer_object)
       nC = next(self.vertex_buffer_object)
 
+    Bmin, Bmax = self.bounding_box(A, B, C)
+    
+    L = self.light
     N = (C - A) * (B - A)
     L = V3(0, 0, -1)
     i = N.normalize() @ L.normalize()
 
-    if i <= 0 or i > 1:
-      return
-
-    grey = round(255 * i)
-
-    self.current_color = color(grey, grey, grey)
-
-    Bmin, Bmax = self.bounding_box(A, B, C)
 
     for x in range(round(Bmin.x), round(Bmax.x) + 1):
       for y in range(round(Bmin.y), round(Bmax.y) + 1):
+        
         w, v, u = self.barycentric(A, B, C, V3(x, y))
-
         if (w < 0 or v < 0 or u < 0):
-          continue
-
-        z = A.z * w + B.z * v + C.z * u
+            continue
+          
+        z = A.z * w + B.z * u + C.z * v
         factor = z/self.width
-
+        
         if (self.zBuffer[x][y] <= z):
           self.zBuffer[x][y] = z
-          self.zClear[x][y] = color_range(factor, factor, factor)
+          self.zClear[x][y] = c.color_range(factor, factor, factor)
           
-          if(self.active_shader):
-            self.current_color = self.active_shader(
-              bar=(w, u, v),
-              vertices=(A, B, C),
-              texture_coords= (tA, tB, tC) if self.texture else None,
-              normals=(nA, nB, nC),
-              light = L,
-              texture = self.texture,
-              height = y
-            )
+          if self.normal_map:
+            
+            tx = tA.x * w + tB.x * u + tC.x * v
+            ty = tA.y * w + tB.y * u + tC.y * v
+
+            normal_color = self.normal_map.get_color_with_intensity(tx, ty, 1)
+            #normal_color = normal_color.normalize()
+            #print(normal_color[0], normal_color[1], normal_color[2])
+            
+            i = V3(normal_color[2], normal_color[1], normal_color[0]).normalize() @ L.normalize()
+            i *= -1
+            self.current_color = self.texture.get_color_with_intensity(tx, ty, i)
 
           else:
-            if self.texture:
-              tx = tA.x * w + tB.x * u + tC.x * v
-              ty = tA.y * w + tB.y * u + tC.y * v
-              self.current_color = self.texture.get_color_with_intensity(tx, ty, i)
-            #if self.material:
-              #if self.material.materials.get(self.material):
-                #self.current_color = color(*[clamping(c * i) for c in self.material.materials[self.material]['difuse']])
-              #else:
-                #self.current_color = color(255, 0, 0)
+          
+            if(self.active_shader):
+              self.current_color = self.active_shader(
+                bar=(w, u, v),
+                vertices=(A, B, C),
+                texture_coords= (tA, tB, tC) if self.texture else None,
+                normals=(nA, nB, nC),
+                light = L,
+                texture = self.texture,
+                height = y
+              )
+
+            else:
+              
+              if self.texture:
+
+                tx = tA.x * w + tB.x * u + tC.x * v
+                ty = tA.y * w + tB.y * u + tC.y * v
+                self.current_color = self.texture.get_color_with_intensity(tx, ty, i)
+              
+              else:
+
+                if i <= 0 or i > 1:
+                  return
+
+                grey = round(255 * i)
+                self.current_color = c.color(grey, grey, grey)
+
           self.point(y, x)
 
   def generate_object(self, name, scale=(0, 0, 0), translate=(0, 0, 0), rotate=(0, 0, 0)):
+    #if self.texture:
+      #print('si')
+
     self.loadModelMatrix(translate, scale, rotate)
     self.vertex_buffer_object = []
     cube = Obj.Obj(name)
@@ -598,8 +620,8 @@ class Render(object):
     try:
       while(True):
           self.triangle()
-    except Exception as e: 
-      StopIteration      
+    except StopIteration:
+      pass    
 
   def generate_wireframe(self, name, scale=(0, 0, 0), translate=(0, 0, 0), rotate=(0, 0, 0)):
     self.loadModelMatrix(translate, scale, rotate)

@@ -96,7 +96,12 @@ def glScale(c, cord, factor):
 
 def glTexture(texture):
     global r
+    r.normal_map = None
     r.texture = Texture(texture)
+
+def glNormalMap(texture):
+    global r
+    r.normal_map = Texture(texture)
 
 def glMaterial(material):
     global r

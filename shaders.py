@@ -1,3 +1,4 @@
+from re import T
 from color import * 
 
 def planeta(**kwargs):
@@ -67,5 +68,6 @@ def default(**kwargs):
         
         return texture.get_color_with_intensity(tx, ty, i)
     else:
-        return color(clamping(250*i), clamping(1*i), clamping(1*i))
+        grey = int(max(min(255*i, 255), 0))
+        return color(grey, grey, grey)
 

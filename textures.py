@@ -1,5 +1,6 @@
 import struct
 from color import color
+from vector import * 
 
 class Texture:
   def __init__(self, path):
@@ -39,7 +40,7 @@ class Texture:
     b = round(self.pixels[y][x][0] * intensity)
     g = round(self.pixels[y][x][1] * intensity)
     r = round(self.pixels[y][x][2] * intensity)
-
+    #return color(255, 0, 0)
     return color(self.clamping(r), self.clamping(g), self.clamping(b))
 
   def clamping(self, num):
